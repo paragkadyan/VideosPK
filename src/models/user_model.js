@@ -82,7 +82,7 @@ userSchema.methods.generateAcessToken = function(){
     expiresIn:process.env.ACESS_TOKEN_EXPIRY
     })
 }
-generateRefreshToken = function(){
+userSchema.methods.generateRefreshToken = function(){
     return jwt.sign({
     _id:this._id
 },
