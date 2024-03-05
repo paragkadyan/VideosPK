@@ -144,8 +144,8 @@ const logoutUser = asyncHandler(async(req,res)=> {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set:{
-                refreshToken:undefined,
+            $unset:{
+                refreshToken:1,
             }
         },
         {
@@ -172,12 +172,11 @@ const refreshAccessToken = asyncHandler(async(req,res)=> {
         throw new ApiError(401,"unauthorized request")
     }
 
-    try {
         const decodedToken = jwt.verify(
             incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET
         )
     
-        const user = User.findById(decodedToken?._id)
+        const user = await User.findById(decodedToken?._id)
         
         if(!user){
             throw new ApiError(401,"invalid refresh token")
@@ -196,14 +195,12 @@ const refreshAccessToken = asyncHandler(async(req,res)=> {
         
         return res
         .status(200)
-        .cookie("accessToken", accessToken)
-        .cookie("refreshToken", newrefreshToken)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", newrefreshToken, options)
         .json(
             new ApiResponse(200,{accessToken,newrefreshToken}, "Access token refreshed")
         )
-    } catch (error) {
-        throw new ApiError(500, "server side error")
-    }
+    
 })
 
 const changeCurrentUserPassword = asyncHandler(async(req,res)=>{
@@ -279,7 +276,7 @@ const updateUSerAvatar = asyncHandler(async(req,res)=>{
 const updateUSerCoverImage = asyncHandler(async(req,res)=>{
     const coverImageLocalPath = req.file?.path
 
-    if(!coverImageLocalPathLocalPath){
+    if(!coverImageLocalPath){
         throw new ApiError(400, "coverImage is missing")
     }
 
@@ -336,11 +333,11 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
                     $size:"$subscribers"    
                 },
                 channelsSubscibedToCount:{
-                    $size: "$subscirbedTo"
+                    $size: "$subscribedTo"
                 },
                 isSubscribed:{
                     $cond:{
-                        if:{$in:[req.user?._id,"subscribers.subscriber"]},
+                        if:{$in:[req.user?._id,"$subscribers.subscriber"]},
                         then:true,
                         else:false  
                     }
